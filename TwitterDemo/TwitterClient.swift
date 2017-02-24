@@ -33,7 +33,6 @@ class TwitterClient: BDBOAuth1SessionManager {
     func logout() {
         User.currentUser = nil
         deauthorize()
-        
         NotificationCenter.default.post(name: NSNotification.Name(rawValue: User.userDidLogoutNotification), object: nil)
         
     }
@@ -56,29 +55,46 @@ class TwitterClient: BDBOAuth1SessionManager {
     }
     
     func homeTimeLine(success: @escaping ([Tweet]) -> (), failure: @escaping (Error) -> ()) {
-        
         get("1.1/statuses/home_timeline.json", parameters: nil, progress: nil, success: { (task: URLSessionDataTask, response: Any?) -> Void in
             let dictionaries = response as! [NSDictionary]
-            
             let tweets = Tweet.tweetsWithArray(dictionaries: dictionaries)
-            
             success(tweets)
+        }, failure: { (task: URLSessionDataTask?, error: Error) in
+            failure(error)
+        })
+    }
+    
+    func currentAccount(success: @escaping (User) -> (), failure: @escaping (Error) -> ()) {
+        get("1.1/account/verify_credentials.json", parameters: nil, progress: nil, success: { (task: URLSessionDataTask, response: Any?) -> Void in
+            //print("account: \(response)")
+            let userDictionary = response as? NSDictionary
+            let user = User(dictionary: userDictionary!)
+            success(user)
+        }, failure: { (task: URLSessionDataTask?, error: Error) in
+            failure(error)
+        })
+    }
+    
+    func retweet(id: Int, success: @escaping (Tweet) -> (), failure: @escaping (Error) -> ()) {
+        post("1.1/statuses/retweet/\(id).json", parameters: nil, progress: nil, success: { (task: URLSessionDataTask, response: Any?) -> Void in
+            let dictionary = response as? NSDictionary
+            let tweet = Tweet(dictionary: dictionary!)
+            success(tweet)
         }, failure: { (task: URLSessionDataTask?, error: Error) in
             failure(error)
             
         })
     }
     
-    func currentAccount(success: @escaping (User) -> (), failure: @escaping (Error) -> ()) {
-        get("1.1/account/verify_credentials.json", parameters: nil, progress: nil, success: { (task: URLSessionDataTask, response: Any?) -> Void in
-            print("account: \(response)")
-            let userDictionary = response as? NSDictionary
-            let user = User(dictionary: userDictionary!)
-            
-            success(user)
-            
+    func favorite(id: Int, success: @escaping (Tweet) -> (), failure: @escaping (Error) -> ()) {
+        post("1.1/favorites/create.json?id=\(id)", parameters: nil, progress: nil, success: { (task: URLSessionDataTask, response: Any?) -> Void in
+            let dictionary = response as? NSDictionary
+            let tweet = Tweet(dictionary: dictionary!)
+            success(tweet)
         }, failure: { (task: URLSessionDataTask?, error: Error) in
             failure(error)
+            
         })
     }
+    
 }

@@ -10,7 +10,9 @@ import UIKit
 
 class TweetCell: UITableViewCell {
 
+    @IBOutlet weak var favoriteLabel: UILabel!
     @IBOutlet weak var profileImageView: UIImageView!
+    @IBOutlet weak var retweetLabel: UILabel!
     @IBOutlet weak var timestampLabel: UILabel!
     @IBOutlet weak var tweetTextLabel: UILabel!
     @IBOutlet weak var usernameLabel: UILabel!
@@ -25,5 +27,5 @@ class TweetCell: UITableViewCell {
 
         // Configure the view for the selected state
     }
-
+    
 }
