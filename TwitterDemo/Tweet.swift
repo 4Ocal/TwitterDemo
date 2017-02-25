@@ -10,21 +10,39 @@ import UIKit
 
 class Tweet: NSObject {
 
-    var id: Int?
+    var current_user_retweet: Tweet?
+    var id_str: String?
     var text: String?
     var timestamp: Date?
     var retweetCount: Int = 0
+    var retweeted: Bool?
+    var retweeted_status: Tweet?
     var favoriteCount: Int = 0
+    var favorited: Bool?
     var username: String?
     var profileImageUrlString: String?
     
     init(dictionary: NSDictionary) {
-        id = dictionary["id"] as? Int
+        let current_user_retweet_dict = (dictionary["current_user_retweet"] as? NSDictionary) ?? nil
+        if current_user_retweet_dict != nil {
+            current_user_retweet = Tweet(dictionary: current_user_retweet_dict!)
+        } else {
+            current_user_retweet = nil
+        }
+        id_str = dictionary["id_str"] as? String
         
         text = dictionary["text"] as? String
         
         retweetCount = (dictionary["retweet_count"] as? Int) ?? 0
-        favoriteCount = (dictionary["favourites_count"] as? Int) ?? 0
+        retweeted = dictionary["retweeted"] as? Bool
+        let retweeted_status_dict = (dictionary["retweeted_status"] as? NSDictionary) ?? nil
+        if retweeted_status_dict != nil {
+            retweeted_status = Tweet(dictionary: retweeted_status_dict!)
+        } else {
+            retweeted_status = nil
+        }
+        favoriteCount = (dictionary["favorite_count"] as? Int) ?? 0
+        favorited = dictionary["favorited"] as? Bool
         
         let timestampString = dictionary["created_at"] as? String
         

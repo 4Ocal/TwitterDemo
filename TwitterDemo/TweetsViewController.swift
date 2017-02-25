@@ -20,24 +20,62 @@ class TweetsViewController: UIViewController, UITableViewDataSource, UITableView
         let buttonPosition:CGPoint = (sender as AnyObject).convert(CGPoint.zero, to: self.tableView)
         let indexPath = tableView.indexPathForRow(at: buttonPosition)
         let tweet = tweets[(indexPath?.row)!]
-        let id = tweet.id
-        TwitterClient.sharedInstance?.retweet(id: id!, success: { (tweet: Tweet) -> () in
-            print("retweeted")
-        }, failure: { (error: Error) -> () in
-            print(error.localizedDescription)
-        })
+        if tweet.retweeted! {
+            TwitterClient.sharedInstance?.unretweet(tweet: tweet, success: { (tweet: Tweet) -> () in
+                TwitterClient.sharedInstance?.homeTimeLine(count: self.count, success: { (tweets: [Tweet]) -> () in
+                    self.tweets = tweets
+                    self.tableView.reloadData()
+                }, failure: { (error: Error) -> () in
+                    print(error.localizedDescription)
+                })
+                print("unretweeted")
+            }, failure: { (error: Error) -> () in
+                print(error.localizedDescription)
+            })
+        } else {
+            TwitterClient.sharedInstance?.retweet(tweet: tweet, success: { (tweet: Tweet) -> () in
+                TwitterClient.sharedInstance?.homeTimeLine(count: self.count, success: { (tweets: [Tweet]) -> () in
+                    self.tweets = tweets
+                    self.tableView.reloadData()
+                }, failure: { (error: Error) -> () in
+                    print(error.localizedDescription)
+                })
+                print("retweeted")
+            }, failure: { (error: Error) -> () in
+                print(error.localizedDescription)
+            })
+        }
     }
     
     @IBAction func favorite(_ sender: Any) {
         let buttonPosition:CGPoint = (sender as AnyObject).convert(CGPoint.zero, to: self.tableView)
         let indexPath = tableView.indexPathForRow(at: buttonPosition)
         let tweet = tweets[(indexPath?.row)!]
-        let id = tweet.id
-        TwitterClient.sharedInstance?.favorite(id: id!, success: { (tweet: Tweet) -> () in
-            print("favorited")
-        }, failure: { (error: Error) -> () in
-            print(error.localizedDescription)
-        })
+        if tweet.favorited! {
+            TwitterClient.sharedInstance?.unfavorite(tweet: tweet, success: { (tweet: Tweet) -> () in
+                TwitterClient.sharedInstance?.homeTimeLine(count: self.count, success: { (tweets: [Tweet]) -> () in
+                    self.tweets = tweets
+                    self.tableView.reloadData()
+                }, failure: { (error: Error) -> () in
+                    print(error.localizedDescription)
+                })
+                print("unfavorited")
+            }, failure: { (error: Error) -> () in
+                print(error.localizedDescription)
+            })
+        } else {
+            TwitterClient.sharedInstance?.favorite(tweet: tweet, success: { (tweet: Tweet) -> () in
+                TwitterClient.sharedInstance?.homeTimeLine(count: self.count, success: { (tweets: [Tweet]) -> () in
+                    self.tweets = tweets
+                    self.tableView.reloadData()
+                }, failure: { (error: Error) -> () in
+                    print(error.localizedDescription)
+                })
+                print("favorited")
+            }, failure: { (error: Error) -> () in
+                print(error.localizedDescription)
+            })
+        }
     }
     
     override func viewDidLoad() {
@@ -47,6 +85,10 @@ class TweetsViewController: UIViewController, UITableViewDataSource, UITableView
         tableView.estimatedRowHeight = 100
         tableView.rowHeight = UITableViewAutomaticDimension
 
+        navigationController?.navigationBar.titleTextAttributes = [NSForegroundColorAttributeName: UIColor.white]
+        navigationController?.navigationBar.tintColor = UIColor.white
+        navigationController?.navigationBar.barTintColor = UIColor(red: 0.11, green: 0.79, blue: 1.00, alpha: 1.0)
+        
         // Initialize a UIRefreshControl
         let refreshControl = UIRefreshControl()
         refreshControl.addTarget(self, action: #selector(refreshControlAction(_:)), for: UIControlEvents.valueChanged)
@@ -62,7 +104,7 @@ class TweetsViewController: UIViewController, UITableViewDataSource, UITableView
         var insets = tableView.contentInset
         insets.bottom += InfiniteScrollActivityView.defaultHeight
         tableView.contentInset = insets
-        TwitterClient.sharedInstance?.homeTimeLine(success: { (tweets: [Tweet]) -> () in
+        TwitterClient.sharedInstance?.homeTimeLine(count: count, success: { (tweets: [Tweet]) -> () in
             self.tweets = tweets
             self.tableView.reloadData()
             /*
@@ -172,15 +214,13 @@ class TweetsViewController: UIViewController, UITableViewDataSource, UITableView
     }
     
     func loadMoreData() {
-        TwitterClient.sharedInstance?.get("1.1/statuses/home_timeline.json?count=\(count)", parameters: nil, progress: nil, success: { (task: URLSessionDataTask, response: Any?) -> Void in
-            let dictionaries = response as! [NSDictionary]
-            let tweets = Tweet.tweetsWithArray(dictionaries: dictionaries)
+        TwitterClient.sharedInstance?.homeTimeLine(count: count, success: { (tweets: [Tweet]) -> () in
             self.isMoreDataLoading = false
             self.loadingMoreView!.stopAnimating()
             self.tweets = tweets
             self.count += 20
             self.tableView.reloadData()
-        }, failure: { (task: URLSessionDataTask?, error: Error) in
+        }, failure: { (error: Error) -> () in
             print(error.localizedDescription)
         })
     }
@@ -208,15 +248,11 @@ class TweetsViewController: UIViewController, UITableViewDataSource, UITableView
     }
     
     func refreshControlAction(_ refreshControl: UIRefreshControl) {
-        TwitterClient.sharedInstance?.get("1.1/statuses/home_timeline.json?count=\(count)", parameters: nil, progress: nil, success: { (task: URLSessionDataTask, response: Any?) -> Void in
-            let dictionaries = response as! [NSDictionary]
-            let tweets = Tweet.tweetsWithArray(dictionaries: dictionaries)
-            self.isMoreDataLoading = false
-            self.loadingMoreView!.stopAnimating()
+        TwitterClient.sharedInstance?.homeTimeLine(count: count, success: { (tweets: [Tweet]) -> () in
             self.tweets = tweets
             self.tableView.reloadData()
             refreshControl.endRefreshing()
-        }, failure: { (task: URLSessionDataTask?, error: Error) in
+        }, failure: { (error: Error) -> () in
             print(error.localizedDescription)
         })
     }
