@@ -16,19 +16,19 @@ class TweetsViewController: UIViewController, UITableViewDataSource, UITableView
     var loadingMoreView:InfiniteScrollActivityView?
     var count = 40
 
-    @IBAction func retweet(_ sender: Any) {
-        let buttonPosition:CGPoint = (sender as AnyObject).convert(CGPoint.zero, to: self.tableView)
+    @IBAction func retweet(_ sender: UIButton) {
+        let buttonPosition:CGPoint = sender.convert(CGPoint.zero, to: self.tableView)
         let indexPath = tableView.indexPathForRow(at: buttonPosition)
         let tweet = tweets[(indexPath?.row)!]
         if tweet.retweeted! {
             TwitterClient.sharedInstance?.unretweet(tweet: tweet, success: { (tweet: Tweet) -> () in
                 TwitterClient.sharedInstance?.homeTimeLine(count: self.count, success: { (tweets: [Tweet]) -> () in
                     self.tweets = tweets
+                    sender.setImage(UIImage(named: "retweet-icon"), for: UIControlState.normal)
                     self.tableView.reloadData()
                 }, failure: { (error: Error) -> () in
                     print(error.localizedDescription)
                 })
-                print("unretweeted")
             }, failure: { (error: Error) -> () in
                 print(error.localizedDescription)
             })
@@ -36,30 +36,30 @@ class TweetsViewController: UIViewController, UITableViewDataSource, UITableView
             TwitterClient.sharedInstance?.retweet(tweet: tweet, success: { (tweet: Tweet) -> () in
                 TwitterClient.sharedInstance?.homeTimeLine(count: self.count, success: { (tweets: [Tweet]) -> () in
                     self.tweets = tweets
+                    sender.setImage(UIImage(named: "retweet-icon-green"), for: UIControlState.normal)
                     self.tableView.reloadData()
                 }, failure: { (error: Error) -> () in
                     print(error.localizedDescription)
                 })
-                print("retweeted")
             }, failure: { (error: Error) -> () in
                 print(error.localizedDescription)
             })
         }
     }
     
-    @IBAction func favorite(_ sender: Any) {
-        let buttonPosition:CGPoint = (sender as AnyObject).convert(CGPoint.zero, to: self.tableView)
+    @IBAction func favorite(_ sender: UIButton) {
+        let buttonPosition:CGPoint = sender.convert(CGPoint.zero, to: self.tableView)
         let indexPath = tableView.indexPathForRow(at: buttonPosition)
         let tweet = tweets[(indexPath?.row)!]
         if tweet.favorited! {
             TwitterClient.sharedInstance?.unfavorite(tweet: tweet, success: { (tweet: Tweet) -> () in
                 TwitterClient.sharedInstance?.homeTimeLine(count: self.count, success: { (tweets: [Tweet]) -> () in
                     self.tweets = tweets
+                    sender.setImage(UIImage(named: "favor-icon"), for: UIControlState.normal)
                     self.tableView.reloadData()
                 }, failure: { (error: Error) -> () in
                     print(error.localizedDescription)
                 })
-                print("unfavorited")
             }, failure: { (error: Error) -> () in
                 print(error.localizedDescription)
             })
@@ -67,11 +67,11 @@ class TweetsViewController: UIViewController, UITableViewDataSource, UITableView
             TwitterClient.sharedInstance?.favorite(tweet: tweet, success: { (tweet: Tweet) -> () in
                 TwitterClient.sharedInstance?.homeTimeLine(count: self.count, success: { (tweets: [Tweet]) -> () in
                     self.tweets = tweets
+                    sender.setImage(UIImage(named: "favor-icon-red"), for: UIControlState.normal)
                     self.tableView.reloadData()
                 }, failure: { (error: Error) -> () in
                     print(error.localizedDescription)
                 })
-                print("favorited")
             }, failure: { (error: Error) -> () in
                 print(error.localizedDescription)
             })
