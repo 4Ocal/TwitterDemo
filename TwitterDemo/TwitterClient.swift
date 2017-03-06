@@ -109,10 +109,8 @@ class TwitterClient: BDBOAuth1SessionManager {
                 original_tweet_id = tweet.retweeted_status?.id_str
             }
             // step 2
-            get("1.1/statuses/show.json", parameters: ["id": original_tweet_id!, "include_my_retweet": true], progress: nil, success: { (task: URLSessionDataTask, response: Any?) -> Void in
-                let dictionary = response as? NSDictionary
-                let full_tweet = Tweet(dictionary: dictionary!)
-                if let retweet_id = full_tweet.current_user_retweet?.id_str {
+            self.show(tweet_id: original_tweet_id!, success: { (tweet: Tweet) -> () in
+                if let retweet_id = tweet.current_user_retweet?.id_str {
                     // step 3
                     self.post("1.1/statuses/unretweet/" + retweet_id + ".json", parameters: nil, progress: nil, success: { (task: URLSessionDataTask, response: Any?) -> Void in
                         let dictionary = response as? NSDictionary
@@ -122,7 +120,7 @@ class TwitterClient: BDBOAuth1SessionManager {
                         failure(error)
                     })
                 }
-            }, failure: { (task: URLSessionDataTask?, error: Error) in
+            }, failure: { (error: Error) -> () in
                 print(error.localizedDescription)
             })
         }
@@ -139,4 +137,52 @@ class TwitterClient: BDBOAuth1SessionManager {
         })
     }
     
+    func show(tweet_id: String, success: @escaping (Tweet) -> (), failure: @escaping (Error) -> ()) {
+        get("1.1/statuses/show.json", parameters: ["id": tweet_id, "include_my_retweet": true], progress: nil, success: { (task: URLSessionDataTask, response: Any?) -> Void in
+            let dictionary = response as? NSDictionary
+            let tweet = Tweet(dictionary: dictionary!)
+            success(tweet)
+        }, failure: { (task: URLSessionDataTask?, error: Error) in
+            failure(error)
+            
+        })
+    }
+    
+    func profileBanner(tweet: Tweet, success: @escaping (String) -> (), failure: @escaping (Error) -> ()) {
+        let user = User(dictionary: tweet.user!)
+        let userId = user.userId
+        get("1.1/users/profile_banner.json", parameters: ["user_id": userId], progress: nil, success: { (task: URLSessionDataTask, response: Any?) -> Void in
+            let dictionary = response as? NSDictionary
+            let sizes = dictionary?["sizes"]as! NSDictionary
+            let size = sizes["mobile"] as! NSDictionary
+            let urlString = size["url"]
+            success(urlString as! String)
+        }, failure: { (task: URLSessionDataTask?, error: Error) in
+            failure(error)
+            
+        })
+    }
+    
+    func reply(status: String, tweet: Tweet, success: @escaping (Tweet) -> (), failure: @escaping (Error) -> ()) {
+        post("1.1/statuses/update.json", parameters: ["status": status, "in_reply_to_status_id": tweet.id_str], progress: nil, success: { (task: URLSessionDataTask, response: Any?) -> Void in
+            let dictionary = response as? NSDictionary
+            let tweet = Tweet(dictionary: dictionary!)
+            success(tweet)
+        }, failure: { (task: URLSessionDataTask?, error: Error) in
+            failure(error)
+            
+        })
+    }
+    
+    func update(status: String, success: @escaping (Tweet) -> (), failure: @escaping (Error) -> ()) {
+        post("1.1/statuses/update.json", parameters: ["status": status], progress: nil, success: { (task: URLSessionDataTask, response: Any?) -> Void in
+            let dictionary = response as? NSDictionary
+            let tweet = Tweet(dictionary: dictionary!)
+            success(tweet)
+        }, failure: { (task: URLSessionDataTask?, error: Error) in
+            failure(error)
+            
+        })
+    }
+
 }

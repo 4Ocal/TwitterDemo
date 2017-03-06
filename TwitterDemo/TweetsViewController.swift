@@ -11,72 +11,11 @@ import UIKit
 class TweetsViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
 
     @IBOutlet weak var tableView: UITableView!
+    
     var tweets: [Tweet]!
     var isMoreDataLoading = false
     var loadingMoreView:InfiniteScrollActivityView?
     var count = 40
-
-    @IBAction func retweet(_ sender: UIButton) {
-        let buttonPosition:CGPoint = sender.convert(CGPoint.zero, to: self.tableView)
-        let indexPath = tableView.indexPathForRow(at: buttonPosition)
-        let tweet = tweets[(indexPath?.row)!]
-        if tweet.retweeted! {
-            TwitterClient.sharedInstance?.unretweet(tweet: tweet, success: { (tweet: Tweet) -> () in
-                TwitterClient.sharedInstance?.homeTimeLine(count: self.count, success: { (tweets: [Tweet]) -> () in
-                    self.tweets = tweets
-                    sender.setImage(UIImage(named: "retweet-icon"), for: UIControlState.normal)
-                    self.tableView.reloadData()
-                }, failure: { (error: Error) -> () in
-                    print(error.localizedDescription)
-                })
-            }, failure: { (error: Error) -> () in
-                print(error.localizedDescription)
-            })
-        } else {
-            TwitterClient.sharedInstance?.retweet(tweet: tweet, success: { (tweet: Tweet) -> () in
-                TwitterClient.sharedInstance?.homeTimeLine(count: self.count, success: { (tweets: [Tweet]) -> () in
-                    self.tweets = tweets
-                    sender.setImage(UIImage(named: "retweet-icon-green"), for: UIControlState.normal)
-                    self.tableView.reloadData()
-                }, failure: { (error: Error) -> () in
-                    print(error.localizedDescription)
-                })
-            }, failure: { (error: Error) -> () in
-                print(error.localizedDescription)
-            })
-        }
-    }
-    
-    @IBAction func favorite(_ sender: UIButton) {
-        let buttonPosition:CGPoint = sender.convert(CGPoint.zero, to: self.tableView)
-        let indexPath = tableView.indexPathForRow(at: buttonPosition)
-        let tweet = tweets[(indexPath?.row)!]
-        if tweet.favorited! {
-            TwitterClient.sharedInstance?.unfavorite(tweet: tweet, success: { (tweet: Tweet) -> () in
-                TwitterClient.sharedInstance?.homeTimeLine(count: self.count, success: { (tweets: [Tweet]) -> () in
-                    self.tweets = tweets
-                    sender.setImage(UIImage(named: "favor-icon"), for: UIControlState.normal)
-                    self.tableView.reloadData()
-                }, failure: { (error: Error) -> () in
-                    print(error.localizedDescription)
-                })
-            }, failure: { (error: Error) -> () in
-                print(error.localizedDescription)
-            })
-        } else {
-            TwitterClient.sharedInstance?.favorite(tweet: tweet, success: { (tweet: Tweet) -> () in
-                TwitterClient.sharedInstance?.homeTimeLine(count: self.count, success: { (tweets: [Tweet]) -> () in
-                    self.tweets = tweets
-                    sender.setImage(UIImage(named: "favor-icon-red"), for: UIControlState.normal)
-                    self.tableView.reloadData()
-                }, failure: { (error: Error) -> () in
-                    print(error.localizedDescription)
-                })
-            }, failure: { (error: Error) -> () in
-                print(error.localizedDescription)
-            })
-        }
-    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -138,14 +77,39 @@ class TweetsViewController: UIViewController, UITableViewDataSource, UITableView
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TweetCell", for: indexPath) as! TweetCell
         let tweet = tweets[indexPath.row]
+        if tweet.retweeted! {
+            cell.retweetImageView.image = UIImage(named: "retweet-icon-green")
+        } else {
+            cell.retweetImageView.image = UIImage(named: "retweet-icon")
+        }
+        if tweet.favorited! {
+            cell.favoriteImageView.image = UIImage(named: "favor-icon-red")
+        } else {
+            cell.favoriteImageView.image = UIImage(named: "favor-icon")
+        }
+        
+        let retweetGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(retweetTapped(tapGestureRecognizer:)))
+        cell.retweetImageView.isUserInteractionEnabled = true
+        cell.retweetImageView.addGestureRecognizer(retweetGestureRecognizer)
+        
+        let favoriteGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(favoriteTapped(tapGestureRecognizer:)))
+        cell.favoriteImageView.isUserInteractionEnabled = true
+        cell.favoriteImageView.addGestureRecognizer(favoriteGestureRecognizer)
+        
         if let imageUrlString = tweet.profileImageUrlString {
             let imageUrl = URL(string: imageUrlString)
-            cell.profileImageView.setImageWith(imageUrl!)
+            do {
+                let data = try Data(contentsOf: imageUrl!)
+                let image = UIImage(data: data)
+            cell.profileButton.setBackgroundImage(image, for: UIControlState.normal)
+            } catch {
+                print(error.localizedDescription)
+            }
         }
         
         cell.favoriteLabel.text = tweet.favoriteCount.description
         cell.retweetLabel.text = tweet.retweetCount.description
-        cell.timestampLabel.text = timeAgoSince(tweet.timestamp!)
+        cell.timestampLabel.text = TweetsViewController().timeAgoSince(tweet.timestamp!)
         cell.tweetTextLabel.text = tweet.text
         cell.usernameLabel.text = tweet.username
         return cell
@@ -257,14 +221,98 @@ class TweetsViewController: UIViewController, UITableViewDataSource, UITableView
         })
     }
     
-    /*
+    func retweetTapped(tapGestureRecognizer: UITapGestureRecognizer) {
+        let tappedImage = tapGestureRecognizer.view as! UIImageView
+        let buttonPosition:CGPoint = tappedImage.convert(CGPoint.zero, to: self.tableView)
+        let indexPath = tableView.indexPathForRow(at: buttonPosition)
+        let tweet = tweets[(indexPath?.row)!]
+        if tweet.retweeted! {
+            TwitterClient.sharedInstance?.unretweet(tweet: tweet, success: { (tweet: Tweet) -> () in
+                TwitterClient.sharedInstance?.homeTimeLine(count: self.count, success: { (tweets: [Tweet]) -> () in
+                    self.tweets = tweets
+                    tappedImage.image = UIImage(named: "retweet-icon")
+                    self.tableView.reloadData()
+                }, failure: { (error: Error) -> () in
+                    print(error.localizedDescription)
+                })
+            }, failure: { (error: Error) -> () in
+                print(error.localizedDescription)
+            })
+        } else {
+            TwitterClient.sharedInstance?.retweet(tweet: tweet, success: { (tweet: Tweet) -> () in
+                TwitterClient.sharedInstance?.homeTimeLine(count: self.count, success: { (tweets: [Tweet]) -> () in
+                    self.tweets = tweets
+                    tappedImage.image = UIImage(named: "retweet-icon-green")
+                    self.tableView.reloadData()
+                }, failure: { (error: Error) -> () in
+                    print(error.localizedDescription)
+                })
+            }, failure: { (error: Error) -> () in
+                print(error.localizedDescription)
+            })
+        }
+    }
+    
+    func favoriteTapped(tapGestureRecognizer: UITapGestureRecognizer) {
+        let tappedImage = tapGestureRecognizer.view as! UIImageView
+        let buttonPosition:CGPoint = tappedImage.convert(CGPoint.zero, to: self.tableView)
+        let indexPath = tableView.indexPathForRow(at: buttonPosition)
+        let tweet = tweets[(indexPath?.row)!]
+        if tweet.favorited! {
+            TwitterClient.sharedInstance?.unfavorite(tweet: tweet, success: { (tweet: Tweet) -> () in
+                TwitterClient.sharedInstance?.homeTimeLine(count: self.count, success: { (tweets: [Tweet]) -> () in
+                    self.tweets = tweets
+                    tappedImage.image = UIImage(named: "favor-icon")
+                    self.tableView.reloadData()
+                }, failure: { (error: Error) -> () in
+                    print(error.localizedDescription)
+                })
+            }, failure: { (error: Error) -> () in
+                print(error.localizedDescription)
+            })
+        } else {
+            TwitterClient.sharedInstance?.favorite(tweet: tweet, success: { (tweet: Tweet) -> () in
+                TwitterClient.sharedInstance?.homeTimeLine(count: self.count, success: { (tweets: [Tweet]) -> () in
+                    self.tweets = tweets
+                    tappedImage.image = UIImage(named: "favor-icon-red")
+                    self.tableView.reloadData()
+                }, failure: { (error: Error) -> () in
+                    print(error.localizedDescription)
+                })
+            }, failure: { (error: Error) -> () in
+                print(error.localizedDescription)
+            })
+        }
+    }
+    
     // MARK: - Navigation
 
     // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         // Get the new view controller using segue.destinationViewController.
         // Pass the selected object to the new view controller.
+        if segue.identifier == "detailsSegue" {
+            let cell = sender as! TweetCell
+            let vc = segue.destination as! TweetDetailsViewController
+            let indexPath = tableView.indexPath(for: cell)
+            vc.tweet = tweets[(indexPath?.row)!]
+        } else if segue.identifier == "profileSegue" {
+            let buttonPosition:CGPoint = (sender as! UIButton).convert(CGPoint.zero, to: self.tableView)
+            let indexPath = tableView.indexPathForRow(at: buttonPosition)
+            let tweet = tweets[(indexPath?.row)!]
+            let vc = segue.destination as! ProfileViewController
+            vc.tweet = tweet
+        } else if segue.identifier == "tweetsToCompose" {
+            let buttonPosition:CGPoint = (sender as! UIButton).convert(CGPoint.zero, to: self.tableView)
+            let indexPath = tableView.indexPathForRow(at: buttonPosition)
+            let tweet = tweets[(indexPath?.row)!]
+            let vc = segue.destination as! ComposeViewController
+            vc.tweet = tweet
+            vc.reply = true
+        }
+        
+        
     }
-    */
+    
 
 }

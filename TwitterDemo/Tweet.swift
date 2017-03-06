@@ -19,10 +19,13 @@ class Tweet: NSObject {
     var retweeted_status: Tweet?
     var favoriteCount: Int = 0
     var favorited: Bool?
+    var user: NSDictionary?
     var username: String?
     var profileImageUrlString: String?
+    var screenname: String?
     
     init(dictionary: NSDictionary) {
+        print(dictionary)
         let current_user_retweet_dict = (dictionary["current_user_retweet"] as? NSDictionary) ?? nil
         if current_user_retweet_dict != nil {
             current_user_retweet = Tweet(dictionary: current_user_retweet_dict!)
@@ -52,9 +55,10 @@ class Tweet: NSObject {
             timestamp = formatter.date(from: timestampString)
         }
         
-        let user = dictionary["user"] as? NSDictionary
+        user = dictionary["user"] as? NSDictionary
         if let user = user {
             username = user["name"] as? String
+            screenname = user["screen_name"] as? String
             profileImageUrlString = user["profile_image_url_https"] as? String
         }
     }
